@@ -10,7 +10,6 @@ docker: &docker
   machine:
     docker_layer_caching: true
 
-
 only-deploy-tags: &only-deploy-tags
   filters:
     tags:
