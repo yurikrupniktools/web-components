@@ -1,0 +1,465 @@
+version: 2
+
+defaults: &defaults
+  working_directory: ~/repo
+  docker:
+    - image: circleci/node:10
+
+docker: &docker
+  working_directory: ~/docer
+  machine:
+    docker_layer_caching: true
+
+
+only-deploy-tags: &only-deploy-tags
+  filters:
+    tags:
+      only: /^.*/
+    branches:
+#      only: master
+      ignore: /.*/
+
+
+only-deploy-tags-with-v: &only-deploy-tags-with-v
+  filters:
+    tags:
+      only: /^v.*/
+    branches:
+      ignore: /.*/
+#      only: master
+
+jobs:
+  dc-build-all:
+    <<: *docker
+    steps:
+      - attach_workspace:
+          at: ~/docer
+      - run:
+          name: docker login
+          command: docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASS
+      - run:
+          name: build
+          command: docker-compose build --force-rm
+      - run:
+          name: docker images
+          command: docker images
+      - run:
+          name: Echo $CIRCLE_BRANCH
+          command: echo $CIRCLE_BRANCH
+      - run:
+          name: Echo $CIRCLE_BUILD_NUM
+          command: echo $CIRCLE_BUILD_NUM
+      - run:
+          name: Echo $IMAGE_NAME
+          command: echo $IMAGE_NAME
+      - run:
+          name: Echo $CIRCLE_TAG
+          command: echo $CIRCLE_TAG
+      - run:
+          name: Echo $CIRCLE_SHA1
+          command: echo $CIRCLE_SHA1
+      - run:
+          name: Echo $CIRCLE_PR_REPONAME
+          command: echo $CIRCLE_PR_REPONAME
+      - run:
+          name: Echo $CIRCLE_PR_USERNAME
+          command: echo $CIRCLE_PR_USERNAME
+      - run:
+          name: tag service1
+          command: docker tag yurikrupnik/client-apps_service1 yurikrupnik/client-apps_service1:1.0.$CIRCLE_BUILD_NUM
+      - run:
+          name: push service1
+          command: docker push yurikrupnik/client-apps_service1
+      - run:
+          name: tag projects
+          command: docker tag yurikrupnik/client-apps_projects yurikrupnik/client-apps_projects:1.0.$CIRCLE_BUILD_NUM
+      - run:
+          name: push projects
+          command: docker push yurikrupnik/client-apps_projects
+      - run:
+          name: tag webserver1
+          command: docker tag yurikrupnik/client-apps_webserver1 yurikrupnik/client-apps_webserver1:1.0.$CIRCLE_BUILD_NUM
+      - run:
+          name: push webserver1
+          command: docker push yurikrupnik/client-apps_webserver1
+      - run:
+          name: tag webserver2
+          command: docker tag yurikrupnik/client-apps_webserver2 yurikrupnik/client-apps_webserver2:1.0.$CIRCLE_BUILD_NUM
+      - run:
+          name: push webserver2
+          command: docker push yurikrupnik/client-apps_webserver2
+      - run:
+          name: tag docs
+          command: docker tag yurikrupnik/client-apps_docs yurikrupnik/client-apps_docs:1.0.$CIRCLE_BUILD_NUM
+      - run:
+          name: push docs
+          command: docker push yurikrupnik/client-apps_docs
+      - run:
+          name: tag lerna
+          command: docker tag yurikrupnik/client-apps_lerna yurikrupnik/client-apps_lerna:1.0.$CIRCLE_BUILD_NUM
+      - run:
+          name: push lerna
+          command: docker push yurikrupnik/client-apps_lerna
+      - run:
+          name: tag gateway1
+          command: docker tag yurikrupnik/client-apps_gateway1 yurikrupnik/client-apps_gateway1:1.0.$CIRCLE_BUILD_NUM
+      - run:
+          name: push gateway1
+          command: docker push yurikrupnik/client-apps_gateway1
+
+  checkout-docker:
+    <<: *docker
+    steps:
+      - checkout
+#      - run:
+#          name: config email
+#          command: git config --global user.email "krupnik.yuri@gmail.com" /
+#            && git config --global user.name "yurikrupnik"
+#      - setup_remote_docker:   # (2)
+#          docker_layer_caching: true # (3)
+      - run:
+          name: docker login
+          command: docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASS
+#      - run:
+#          name: build-lerna
+#          command: docker-compose build lerna
+      - persist_to_workspace:
+          root: ~/docer
+          paths:
+            .
+
+  webserver1:
+    <<: *docker
+    steps:
+      - attach_workspace:
+          at: ~/docer
+      - run:
+          name: build
+          command: docker-compose build webserver1
+      - run:
+          name: Start Service and Check That it’s Running
+          command: |
+            docker run -d --name webserver1 -p 9000:9000 yurikrupnik/client-apps_webserver1
+      - run:
+          name: See logs
+          command: docker logs webserver1
+      - run:
+          name: Echo $CIRCLE_BRANCH
+          command: echo $CIRCLE_BRANCH
+      - run:
+          name: Echo $CIRCLE_BUILD_NUM
+          command: echo $CIRCLE_BUILD_NUM
+      - run:
+          name: Run more Sjhit
+          command: echo $GOPATH
+  webserver2:
+    <<: *docker
+    steps:
+      - attach_workspace:
+          at: ~/docer
+      - run:
+          name: build
+          command: docker-compose build webserver2
+      - run:
+          name: Start Service and Check That it’s Running
+          command: |
+            docker run -d --name webserver2 -p 9001:9001 yurikrupnik/client-apps_webserver2
+      - run:
+          name: See logs
+          command: docker logs webserver2
+      - run:
+          name: Echo $CIRCLE_BRANCH
+          command: echo $CIRCLE_BRANCH
+      - run:
+          name: Echo $CIRCLE_BUILD_NUM
+          command: echo $CIRCLE_BUILD_NUM
+      - run:
+          name: Run more Sjhit
+          command: echo $GOPATH
+  service1:
+    <<: *docker
+    steps:
+      - attach_workspace:
+          at: ~/docer
+      - run:
+          name: build
+          command: docker-compose build service1
+      - run:
+          name: Start Service and Check That it’s Running
+          command: |
+            docker run -d --name service1 -p 7000:7000 yurikrupnik/client-apps_service1
+      - run:
+          name: See logs
+          command: docker logs service1
+      - run:
+          name: Echo $CIRCLE_BRANCH
+          command: echo $CIRCLE_BRANCH
+      - run:
+          name: Echo $CIRCLE_BUILD_NUM
+          command: echo $CIRCLE_BUILD_NUM
+      - run:
+          name: Run more Sjhit
+          command: echo $GOPATH
+  projects:
+    <<: *docker
+    steps:
+      - attach_workspace:
+          at: ~/docer
+      - run:
+          name: build
+          command: docker-compose build projects
+      - run:
+          name: Start Service and Check That it’s Running
+          command: |
+            docker run -d --name projects -p 7001:7001 yurikrupnik/client-apps_projects
+      - run:
+          name: See logs
+          command: docker logs projects
+      - run:
+          name: Echo $CIRCLE_BRANCH
+          command: echo $CIRCLE_BRANCH
+      - run:
+          name: Echo $CIRCLE_BUILD_NUM
+          command: echo $CIRCLE_BUILD_NUM
+      - run:
+          name: Run more Sjhit
+          command: echo $GOPATH
+  docs:
+    <<: *docker
+    steps:
+      - attach_workspace:
+          at: ~/docer
+      - run:
+          name: build
+          command: docker-compose build docs
+      - run:
+          name: Start Service and Check That it’s Running
+          command: |
+            docker run -d --name docs -p 6002:6002 yurikrupnik/client-apps_docs
+      - run:
+          name: See logs
+          command: docker logs docs
+      - run:
+          name: Echo $CIRCLE_BRANCH
+          command: echo $CIRCLE_BRANCH
+      - run:
+          name: Echo $CIRCLE_BUILD_NUM
+          command: echo $CIRCLE_BUILD_NUM
+      - run:
+          name: Run more Sjhit
+          command: echo $GOPATH
+  gateway1:
+    <<: *docker
+    steps:
+      - attach_workspace:
+          at: ~/docer
+      - run:
+          name: docker ps
+          command: docker ps
+      - run:
+          name: build
+          command: docker-compose build gateway1
+      - run:
+          name: Start Service and Check That it’s Running
+          command: |
+            docker run -d --name gateway1 -p 8000:8000 yurikrupnik/client-apps_gateway1
+      - run:
+          name: See logs
+          command: docker logs gateway1
+      - run:
+          name: Echo $CIRCLE_BRANCH
+          command: echo $CIRCLE_BRANCH
+      - run:
+          name: Echo $CIRCLE_BUILD_NUM
+          command: echo $CIRCLE_BUILD_NUM
+      - run:
+          name: docker ps
+          command: docker ps
+
+
+  checkout:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: update-npm
+          command: sudo npm install -g npm@6
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run:
+          name: install-npm-wee
+          command: npm install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - ./node_modules
+      - run:
+          name: install-packages
+          command: npm run pi
+      - run:
+          name: Authenticate with registry
+          command: echo "//registry.npmjs.org/:_authToken=$npm_TOKEN" > ~/.npmrc
+      - run:
+          name: config email
+          command: git config --global user.email "krupnik.yuri@gmail.com" /
+            && git config --global user.name "yurikrupnik"
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            .
+
+  lint:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: eslint
+          command: npm run lint
+  test:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: test
+          command: npx jest
+      - run:
+          name: Upload Coverage Results
+          command: |
+            bash <(curl -s https://codecov.io/bash) \
+              -n ${CIRCLE_BUILD_NUM} \
+              -t ${CODECOV_TOKEN} \
+              -y .codecov.yml \
+  build:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: build
+          command: npm run build
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            .
+
+  test-docks:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: compose
+          command: docker-compose up
+
+  deploy_npm:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: status
+          command: git status
+      - run:
+          name: checkout
+          command: git checkout master
+      - run:
+          name: update-npm
+          command: sudo npm install -g npm@6
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run:
+          name: install-npm-wee
+          command: npm install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - ./node_modules
+      - run:
+          name: install-packages
+          command: npm run pi
+      - run:
+          name: build-packages
+          command: npm run build
+      - run:
+          name: Authenticate with registry
+          command: echo "//registry.npmjs.org/:_authToken=$npm_TOKEN" > ~/.npmrc
+      - run:
+          name: config email
+          command: git config --global user.email $git_EMAIL /
+            && git config --global user.name $git_name
+      - run:
+          name: publish
+          command: npx lerna publish patch --yes
+      - run:
+          name: install after
+          command: npm run pi
+      - run:
+          name: git add
+          command: git add .
+      - run:
+          name: git commit
+          command: git commit -am "package-lock.json update"
+      - run:
+          name: git push
+          command: git push origin
+
+workflows:
+  version: 2
+#  docker:
+#    jobs:
+#      - checkout-docker
+#      - dc-build-all:
+#          requires:
+#            - checkout-docker
+#      - docs:
+#          requires:
+#            - checkout-docker
+#      - gateway1:
+#          requires:
+#            - checkout-docker
+#      - projects:
+#            requires:
+#              - checkout-docker
+#      - service1:
+#          requires:
+#            - checkout-docker
+#      - webserver1:
+#          requires:
+#            - checkout-docker
+#      - webserver2:
+#          requires:
+#            - checkout-docker
+  npm:
+    jobs:
+      - checkout
+      - lint:
+          requires:
+            - checkout
+      - test:
+          requires:
+            - checkout
+      - build:
+          requires:
+            - checkout
+      - deploy_npm:
+          requires:
+            - build
+          filters:
+#            tags:
+#              only: /^.*/
+            branches:
+                    only: master
+#              ignore: /.*/
+#          <<: *only-deploy-tags
+
+  deploy:
+    jobs:
+      - checkout-docker:
+          <<: *only-deploy-tags
+  deploy-with-tags:
+    jobs:
+      - checkout-docker:
+          <<: *only-deploy-tags-with-v
+#      - deploy_npm:
+#          <<: *only-deploy-tags
